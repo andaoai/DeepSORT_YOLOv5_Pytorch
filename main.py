@@ -1,8 +1,8 @@
 from yolov5.utils.general import (
-    check_img_size, non_max_suppression, scale_coords, xyxy2xywh)
-from yolov5.utils.torch_utils import select_device, time_synchronized
-from yolov5.utils.datasets import letterbox
-
+    check_img_size, non_max_suppression, scale_boxes, xyxy2xywh)
+from yolov5.utils.torch_utils import select_device, time_sync
+from yolov5.utils.dataloaders import letterbox
+from yolov5.models.common import DetectMultiBackend
 from utils_ds.parser import get_config
 from utils_ds.draw import draw_boxes
 from deep_sort import build_tracker
@@ -56,7 +56,8 @@ class VideoTracker(object):
         self.deepsort = build_tracker(cfg, use_cuda=use_cuda)
 
         # ***************************** initialize YOLO-V5 **********************************
-        self.detector = torch.load(args.weights, map_location=self.device)['model'].float()  # load to FP32
+        # self.detector = torch.load(args.weights, map_location=self.device)['model'].float()  # load to FP32
+        self.detector = DetectMultiBackend(args.weights, device=self.device, dnn=False)
         self.detector.to(self.device).eval()
         if self.half:
             self.detector.half()  # to FP16
@@ -159,8 +160,6 @@ class VideoTracker(object):
                         x1, y1, x2, y2, idx = outputs[i]
                         f.write('{}\t{}\t{}\t{}\t{}\n'.format(x1, y1, x2, y2, idx))
 
-
-
             idx_frame += 1
 
         print('Avg YOLO time (%.3fs), Sort time (%.3fs) per frame' % (sum(yolo_time) / len(yolo_time),
@@ -175,7 +174,7 @@ class VideoTracker(object):
         """
         # preprocess ************************************************************
         # Padded resize
-        img = letterbox(im0, new_shape=self.img_size)[0]
+        img = letterbox(im0, scaleFill=True, new_shape=self.img_size)[0]
         # Convert
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
         img = np.ascontiguousarray(img)
@@ -190,21 +189,21 @@ class VideoTracker(object):
 
         # Detection time *********************************************************
         # Inference
-        t1 = time_synchronized()
+        t1 = time_sync()
         with torch.no_grad():
             pred = self.detector(img, augment=self.args.augment)[0]  # list: bz * [ (#obj, 6)]
 
         # Apply NMS and filter object other than person (cls:0)
         pred = non_max_suppression(pred, self.args.conf_thres, self.args.iou_thres,
                                    classes=self.args.classes, agnostic=self.args.agnostic_nms)
-        t2 = time_synchronized()
+        t2 = time_sync()
 
         # get all obj ************************************************************
         det = pred[0]  # for video, bz is 1
         if det is not None and len(det):  # det: (#obj, 6)  x1 y1 x2 y2 conf cls
 
             # Rescale boxes from img_size to original im0 size
-            det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+            det[:, :4] = scale_boxes(img.shape[2:], det[:, :4], im0.shape).round()
 
             # Print results. statistics of number of each obj
             for c in det[:, -1].unique():
@@ -227,7 +226,7 @@ class VideoTracker(object):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # input and output
-    parser.add_argument('--input_path', type=str, default='input_480.mp4', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--input_path', type=str, default='test.mp4', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--save_path', type=str, default='output/', help='output folder')  # output folder
     parser.add_argument("--frame_interval", type=int, default=2)
     parser.add_argument('--fourcc', type=str, default='mp4v', help='output video codec (verify ffmpeg support)')
