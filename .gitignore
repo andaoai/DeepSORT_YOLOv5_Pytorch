@@ -110,3 +110,5 @@ ENV/
 # Pycharm
 .idea
 
+*.txt
+*.mp4
