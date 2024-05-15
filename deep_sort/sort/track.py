@@ -1,6 +1,9 @@
 # vim: expandtab:ts=4:sw=4
 
 
+import numpy as np
+
+
 class TrackState:
     """
     Enumeration type for the single target track state. Newly created tracks are
@@ -72,6 +75,7 @@ class Track:
         self.hits = 1
         self.age = 1
         self.time_since_update = 0
+        self.tracking_point_list = []
 
         self.state = TrackState.Tentative
         self.features = []
@@ -136,6 +140,12 @@ class Track:
             The associated detection.
 
         """
+        # 添加跟踪点
+        center_x_int = int(detection.tlwh[0] + detection.tlwh[2] / 2)
+        center_y_int = int(detection.tlwh[1] + detection.tlwh[3] / 2)
+        center_int = np.array([center_x_int, center_y_int], dtype=np.int32)  
+        self.tracking_point_list.append(center_int)
+
         self.mean, self.covariance = kf.update(
             self.mean, self.covariance, detection.to_xyah())
         self.features.append(detection.feature)

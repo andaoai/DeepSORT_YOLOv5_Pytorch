@@ -121,7 +121,7 @@ class VideoTracker(object):
             _, img0 = self.vdo.retrieve()
 
             if idx_frame % self.args.frame_interval == 0:
-                outputs, yt, st = self.image_track(img0)        # (#ID, 5) x1,y1,x2,y2,id
+                outputs,tracking_point_list, yt, st = self.image_track(img0)        # (#ID, 5) x1,y1,x2,y2,id
                 last_out = outputs
                 yolo_time.append(yt)
                 sort_time.append(st)
@@ -136,7 +136,7 @@ class VideoTracker(object):
             if len(outputs) > 0:
                 bbox_xyxy = outputs[:, :4]
                 identities = outputs[:, -1]
-                img0 = draw_boxes(img0, bbox_xyxy, identities)  # BGR
+                img0 = draw_boxes(img0, bbox_xyxy,tracking_point_list, identities)  # BGR
 
                 # add FPS information on output video
                 text_scale = max(1, img0.shape[1] // 1600)
@@ -214,19 +214,20 @@ class VideoTracker(object):
             confs = det[:, 4:5].cpu()
 
             # ****************************** deepsort ****************************
-            outputs = self.deepsort.update(bbox_xywh, confs, im0)
+            outputs,tracking_point_list = self.deepsort.update(bbox_xywh, confs, im0)
             # (#ID, 5) x1,y1,x2,y2,track_ID
         else:
             outputs = torch.zeros((0, 5))
+            tracking_point_list = []
 
         t3 = time.time()
-        return outputs, t2-t1, t3-t2
+        return outputs,tracking_point_list, t2-t1, t3-t2
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # input and output
-    parser.add_argument('--input_path', type=str, default='test.mp4', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--input_path', type=str, default='test1.mp4', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--save_path', type=str, default='output/', help='output folder')  # output folder
     parser.add_argument("--frame_interval", type=int, default=2)
     parser.add_argument('--fourcc', type=str, default='mp4v', help='output video codec (verify ffmpeg support)')
@@ -242,9 +243,9 @@ if __name__ == '__main__':
     # YOLO-V5 parameters
     parser.add_argument('--weights', type=str, default='yolov5/weights/yolov5s.pt', help='model.pt path')
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.5, help='object confidence threshold')
+    parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='IOU threshold for NMS')
-    parser.add_argument('--classes', nargs='+', type=int, default=[0], help='filter by class')
+    parser.add_argument('--classes', nargs='+', type=int, default=[0,1,2,3], help='filter by class')
     parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
 

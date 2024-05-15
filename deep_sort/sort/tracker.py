@@ -72,14 +72,22 @@ class Tracker:
             self._match(detections)
 
         # Update track set.
+
+        # 先把匹配上的track_idx和detection_idx，进行更新。
         for track_idx, detection_idx in matches:
             self.tracks[track_idx].update(
                 self.kf, detections[detection_idx])
+        
+        # 没有匹配上，直接Deleted掉
         for track_idx in unmatched_tracks:
             self.tracks[track_idx].mark_missed()
+
+        # 没有匹配上，同时新的
         for detection_idx in unmatched_detections:
             #
             self._initiate_track(detections[detection_idx])
+
+        # 过滤掉被删除的 目标。
         self.tracks = [t for t in self.tracks if not t.is_deleted()]
 
         # Update distance metric.

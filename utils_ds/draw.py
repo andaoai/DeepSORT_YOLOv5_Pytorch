@@ -12,8 +12,9 @@ def compute_color_for_labels(label):
     return tuple(color)
 
 
-def draw_boxes(img, bbox, identities=None, offset=(0,0)):
+def draw_boxes(img, bbox,tracking_point_list, identities=None, offset=(0,0)):
     for i,box in enumerate(bbox):
+        tracking_point = tracking_point_list[i]
         x1,y1,x2,y2 = [int(i) for i in box]
         x1 += offset[0]
         x2 += offset[0]
@@ -24,6 +25,8 @@ def draw_boxes(img, bbox, identities=None, offset=(0,0)):
         color = compute_color_for_labels(id)
         label = '{}{:d}'.format("", id)
         t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 2 , 2)[0]
+        for point in tracking_point:
+            cv2.circle(img, tuple(point), 5, color, -1, lineType=cv2.LINE_AA, shift=0)
         cv2.rectangle(img,(x1, y1),(x2,y2),color,3)
         cv2.rectangle(img,(x1, y1),(x1+t_size[0]+3,y1+t_size[1]+4), color,-1)
         cv2.putText(img,label,(x1,y1+t_size[1]+4), cv2.FONT_HERSHEY_PLAIN, 2, [255,255,255], 2)
