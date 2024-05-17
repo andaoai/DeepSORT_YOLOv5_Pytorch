@@ -136,11 +136,11 @@ class VideoTracker(object):
             if len(outputs) > 0:
                 bbox_xyxy = outputs[:, :4]
                 identities = outputs[:, -1]
-                img0 = draw_boxes(img0, bbox_xyxy,tracking_point_list, identities)  # BGR
+                img0,out_number,in_number = draw_boxes(img0, bbox_xyxy,tracking_point_list, identities)  # BGR
 
                 # add FPS information on output video
                 text_scale = max(1, img0.shape[1] // 1600)
-                cv2.putText(img0, 'frame: %d fps: %.2f ' % (idx_frame, len(avg_fps) / sum(avg_fps)),
+                cv2.putText(img0, 'frame: %d fps: %.2f in:%d out:%d' % (idx_frame, len(avg_fps) / sum(avg_fps),in_number,out_number),
                         (20, 20 + text_scale), cv2.FONT_HERSHEY_PLAIN, text_scale, (0, 0, 255), thickness=2)
 
             # display on window ******************************
@@ -227,7 +227,7 @@ class VideoTracker(object):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # input and output
-    parser.add_argument('--input_path', type=str, default='test1.mp4', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--input_path', type=str, default='test10.mp4', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--save_path', type=str, default='output/', help='output folder')  # output folder
     parser.add_argument("--frame_interval", type=int, default=2)
     parser.add_argument('--fourcc', type=str, default='mp4v', help='output video codec (verify ffmpeg support)')
@@ -242,7 +242,7 @@ if __name__ == '__main__':
 
     # YOLO-V5 parameters
     parser.add_argument('--weights', type=str, default='yolov5/weights/yolov5s.pt', help='model.pt path')
-    parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
+    parser.add_argument('--img-size', type=int, default=1280, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='IOU threshold for NMS')
     parser.add_argument('--classes', nargs='+', type=int, default=[0,1,2,3], help='filter by class')
